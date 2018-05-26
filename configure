@@ -1,0 +1,10 @@
+if [ ! -d debug ]; then
+    mkdir debug
+fi
+cd debug
+rm -f CMakeCache.txt
+build_cmd="cmake \
+    -D CMAKE_BUILD_TYPE=Debug \
+    ../."
+echo $build_cmd
+eval $build_cmd    
