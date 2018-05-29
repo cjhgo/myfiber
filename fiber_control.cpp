@@ -19,13 +19,7 @@ Fiber_Control::Fiber_Control()
 	tls.pre = NULL;
 	tls.garbage = NULL;
 	ucontext_t * cp = &tls.base;
-	getcontext(cp);
-  	cp->uc_link = 0;
-  	if ((cp->uc_stack.ss_sp = (char *) malloc(16384)) != NULL) 
-  	{
-    	cp->uc_stack.ss_size = 16384;
-    	cp->uc_stack.ss_flags = 0;
-    }
+    init_context(cp);
 	auto thread_init = std::bind(&Fiber_Control::init, this);
 	thread.start(thread_init);
 }
