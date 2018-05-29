@@ -7,17 +7,20 @@
 #include<ucontext.h>
 #include<queue>
 #include<pthread_tools.h>
-
+#define STACK_SIZE 16384  
+class Fiber_Control;
 struct Fiber
 {
+	Fiber_Control* parent;
 	std::function<void()> fn;
 	ucontext_t context;
 };
 struct Tls
 {
+	Fiber_Control* parent;
 	Fiber* cur;
 	Fiber* pre;
-	Fiber* next;
+	Fiber* garbage;
 	ucontext_t base;
 
 };
@@ -30,6 +33,9 @@ public:
 	void launch(std::function<void()> fn);
 	Fiber_Control();
 	void join();
+	static void yield();
+	static void trampoline(void* _args);
+	
 private:	
 	Thread thread;
 	Mutex mutex;
@@ -38,6 +44,9 @@ private:
 	std::queue<Fiber> workerqueue;
 	Fiber* get_fiber();
 	Tls tls;
+	void yield_to(Fiber* next_fib);
+	void reschedule_fiber(Fiber* f);
 };
 
+void init_context(ucontext_t * uc);
 #endif

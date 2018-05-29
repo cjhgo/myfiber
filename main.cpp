@@ -18,11 +18,6 @@ struct hhh
 
 int main(int argc, char const *argv[])
 {
-	// Thread t;
-	// //t.start(std::function<void (void)>fun);
-	// t.start(fun);
-	// t.join();
-	// std::cout<<"ahhhh";
 	Fiber_group g;
 	auto fuck = std::bind(foo);
 	hhh h;
