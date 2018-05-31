@@ -85,15 +85,16 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 		if( tls.pre != NULL )
 		{			
 			trampoline_args* args = new trampoline_args;	
+			args->fn=tls.cur->fn;
 			init_context(&(tls.cur->context));
-			ucontext_t here=tls.pre->context;
-			tls.cur->context.uc_link=&here;
+			tls.cur->context.uc_link=&(tls.pre->context);
 			makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
-			swapcontext(&here, &(tls.cur->context));
+			swapcontext(&(tls.pre->context), &(tls.cur->context));
 		}
 		else
 		{			
-			trampoline_args* args = new trampoline_args;	
+			trampoline_args* args = new trampoline_args;
+			args->fn=tls.cur->fn;
 			init_context(&(tls.cur->context));
 			ucontext_t here;
 			tls.cur->context.uc_link=&here;
