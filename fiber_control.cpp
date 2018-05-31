@@ -84,11 +84,15 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 		tls.cur = next_fib;
 		if( tls.pre != NULL )
 		{			
-			std::cout<<"temp ...\n";
+			trampoline_args* args = new trampoline_args;	
+			init_context(&(tls.cur->context));
+			ucontext_t here=tls.pre->context;
+			tls.cur->context.uc_link=&here;
+			makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
+			swapcontext(&here, &(tls.cur->context));
 		}
 		else
-		{
-			
+		{			
 			trampoline_args* args = new trampoline_args;	
 			init_context(&(tls.cur->context));
 			ucontext_t here;

@@ -19,7 +19,6 @@ struct TLS
 	ucontext_t base;
 };
 
-
 void init_context(ucontext_t * uc)
 {
 	getcontext(uc);
