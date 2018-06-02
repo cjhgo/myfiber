@@ -95,7 +95,7 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 		tls.cur = next_fib;
 		if( tls.pre != NULL )
 		{	
-			std::cout<<"run to here"<<std::endl;				
+			std::cout<<"run to here Fiber_Control:98"<<std::endl;				
 			trampoline_args* args = new trampoline_args;	
 			args->fn=tls.cur->fn;
 			init_context(&(tls.cur->context));
@@ -117,10 +117,20 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 	}
 	else
 	{
-		return;
+		if(tls.cur)
+		{
+			tls.pre=tls.cur;
+			tls.cur=NULL;
+		}
+		else
+			return;
 	}
-	// if( tls.pre )
-	// 	reschedule_fiber(tls.pre);
+	if( tls.pre )
+	{
+		std::cout<<"runt to here fiber_control:134"<<std::endl;
+		reschedule_fiber(tls.pre);
+	}
+	tls.pre = NULL;
 }
 
 
@@ -144,8 +154,5 @@ void Fiber_Control::trampoline(void* _args) {
 
 void Fiber_Control::reschedule_fiber(Fiber* f)
 {
-	mutex.lock();
 	workerqueue.push(*f);
-	cond.signal();
-	mutex.unlock();	
 }
