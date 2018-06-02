@@ -19,22 +19,9 @@ struct hhh
 int main(int argc, char const *argv[])
 {
 	Fiber_group g;
-	auto fuck = std::bind(foo);
-	hhh h;
-	h.fn=fuck;
-	std::queue<hhh> wq;
-	wq.push(h);
-	std::cout<<wq.size();	
-	wq.push(h);
-	std::cout<<wq.size();	
-	wq.push(h);
-	std::cout<<wq.size();	
-	std::cout<<std::endl;
-	g.launch(fuck);
+	g.launch(foo);
 	g.launch(bar);
-	g.launch(fuck);
-	g.launch(fuck);
-	g.launch(fuck);
+	g.launch(foo);
 	g.join();
 	return 0;
 }

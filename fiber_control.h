@@ -40,6 +40,7 @@ private:
 	Thread thread;
 	Mutex mutex;
 	Conditional cond;
+	bool waiting;
 	bool stop;
 	std::queue<Fiber> workerqueue;
 	Fiber* get_fiber();

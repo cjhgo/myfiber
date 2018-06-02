@@ -12,7 +12,7 @@ struct trampoline_args {
   std::function<void(void)> fn;
 };
 Fiber_Control::Fiber_Control()
-:stop(false)
+:stop(false),waiting(true)
 {	
 	tls.parent = this;
 	tls.cur = NULL;
@@ -25,20 +25,27 @@ Fiber_Control::Fiber_Control()
 }
 void Fiber_Control::init()
 {	
+	
+	waiting=true;
 	mutex.lock();
 	while(not stop)
 	{
 		Fiber* f = get_fiber();		
 		if (f != NULL)
 		{
+			mutex.unlock();
+			waiting=false;
 			yield_to(f);
+			waiting=true;
+			mutex.lock();
 		}
 		else
 		{
-			cond.wait(mutex);	
+			cond.wait(mutex);		
 		}		
 	}
 	mutex.unlock();
+
 }
 Fiber_Control& Fiber_Control::get_instance()
 {
@@ -50,10 +57,14 @@ void Fiber_Control::launch(std::function<void()> fn)
 	Fiber* f = new Fiber;
 	f->parent=this;
 	f->fn=fn;
-	mutex.lock();
 	workerqueue.push(*f);
-	cond.signal();
-	mutex.unlock();
+	if(waiting == true)
+	{
+		mutex.lock();
+		cond.signal();
+		mutex.unlock();
+	}
+	
 }
 Fiber* Fiber_Control::get_fiber()
 {
@@ -83,7 +94,8 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 		tls.pre = tls.cur;
 		tls.cur = next_fib;
 		if( tls.pre != NULL )
-		{			
+		{	
+			std::cout<<"run to here"<<std::endl;				
 			trampoline_args* args = new trampoline_args;	
 			args->fn=tls.cur->fn;
 			init_context(&(tls.cur->context));
@@ -91,8 +103,9 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 			makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
 			swapcontext(&(tls.pre->context), &(tls.cur->context));
 		}
-		else
-		{			
+		else//tls.pre == null
+		{	
+			
 			trampoline_args* args = new trampoline_args;
 			args->fn=tls.cur->fn;
 			init_context(&(tls.cur->context));
@@ -106,8 +119,8 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 	{
 		return;
 	}
-	if( tls.pre )
-		reschedule_fiber(tls.pre);
+	// if( tls.pre )
+	// 	reschedule_fiber(tls.pre);
 }
 
 
