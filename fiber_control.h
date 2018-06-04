@@ -15,6 +15,7 @@ struct Fiber
 	std::function<void()> fn;
 	ucontext_t context;
 	bool terminate;
+	bool inited;
 };
 struct Tls
 {

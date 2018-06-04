@@ -4,11 +4,13 @@
 #include<fiber_group.h>
 void foo()
 {
-	std::cout<<"i am fun\n";
+	std::cout<<"i am foo\n";
 }
 void bar()
 {
-	std::cout<<"i am foo\n";
+	std::cout<<"i am bar1\n";
+	Fiber_Control::yield();
+	std::cout<<"i am bar2!!!!!\n";
 }
 struct hhh
 {

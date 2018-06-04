@@ -56,6 +56,8 @@ Fiber_Control& Fiber_Control::get_instance()
 void Fiber_Control::launch(std::function<void()> fn)
 {
 	Fiber* f = new Fiber;
+	f->terminate=false;
+	f->inited=false;
 	f->parent=this;
 	f->fn=fn;
 	workerqueue.push(*f);
@@ -77,8 +79,7 @@ Fiber* Fiber_Control::get_fiber()
 	{
 		Fiber f = workerqueue.front();
 		workerqueue.pop();		
-		Fiber* fp=new Fiber;
-		fp->fn=f.fn;
+		Fiber* fp=new Fiber(f);
 		return  fp;
 	}
 }
@@ -96,33 +97,47 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 		tls.cur = next_fib;
 		if( tls.pre != NULL )
 		{	
-			std::cout<<"run to here Fiber_Control:98"<<std::endl;				
-			trampoline_args* args = new trampoline_args;	
-			args->fn=tls.cur->fn;
-			init_context(&(tls.cur->context));
+			// std::cout<<"run to here Fiber_Control:98"<<std::endl;				
 
-			tls.cur->context.uc_link=&(tls.pre->context);
-			makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
+			if (tls.cur->inited == false)
+			{
+				trampoline_args* args = new trampoline_args;	
+				args->fn=tls.cur->fn;
+				init_context(&(tls.cur->context));
+				tls.cur->context.uc_link=&(tls.pre->context);
+				makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
+				tls.cur->inited = true;
+			}
+
 			swapcontext(&(tls.pre->context), &(tls.cur->context));
 			//setcontext(&(tls.cur->context));
 		}
 		else//tls.pre == null
 		{	
 			
-			trampoline_args* args = new trampoline_args;
-			args->fn=tls.cur->fn;
-			init_context(&(tls.cur->context));
+			// trampoline_args* args = new trampoline_args;
+			// args->fn=tls.cur->fn;
+			// init_context(&(tls.cur->context));
 
-			init_context(&(tls.base));
-			tls.cur->context.uc_link=&(tls.base);
-			makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
+			// init_context(&(tls.base));
+			// tls.cur->context.uc_link=&(tls.base);
+			// makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
+			if (tls.cur->inited == false)
+			{
+				trampoline_args* args = new trampoline_args;	
+				args->fn=tls.cur->fn;
+				init_context(&(tls.cur->context));
+				tls.cur->context.uc_link=&(tls.pre->context);
+				makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
+				tls.cur->inited = true;
+			}
 			swapcontext(&(tls.base), &(tls.cur->context));
 		}
 	}
 	else
 	{
-		std::cout<<"run to here: Fiber_Control:122"<<std::endl;
-		if(tls.cur)
+		// std::cout<<"run to here: Fiber_Control:122"<<std::endl;
+		if(tls.cur && tls.cur->terminate)
 		{
 			tls.pre=tls.cur;
 			tls.cur=NULL;
@@ -133,7 +148,7 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 	}
 	if( tls.pre )
 	{
-		std::cout<<"runt to here fiber_control:134"<<std::endl;
+		// std::cout<<"runt to here fiber_control:134"<<std::endl;
 		reschedule_fiber(tls.pre);
 	}
 	tls.pre = NULL;
@@ -149,7 +164,7 @@ void Fiber_Control::trampoline(void* _args) {
   if (tls.pre) 
   	tls.parent->reschedule_fiber(tls.pre);
   tls.pre = NULL;
-  std::cout<<" i am trampoline\n";
+  std::cout<<" call trampoline\n";
   trampoline_args* args = reinterpret_cast<trampoline_args*>(_args);
   try {
     args->fn();
