@@ -1,5 +1,6 @@
 #include<fiber_control.h>
 #include<iostream>
+Tls Fiber_Control::tls;
 void init_context(ucontext_t * uc)
 {
 	getcontext(uc);
@@ -19,7 +20,7 @@ Fiber_Control::Fiber_Control()
 	tls.pre = NULL;
 	tls.garbage = NULL;
 	ucontext_t * cp = &tls.base;
-    init_context(cp);
+	init_context(cp);
 	auto thread_init = std::bind(&Fiber_Control::init, this);
 	thread.start(thread_init);
 }
@@ -99,9 +100,11 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 			trampoline_args* args = new trampoline_args;	
 			args->fn=tls.cur->fn;
 			init_context(&(tls.cur->context));
+
 			tls.cur->context.uc_link=&(tls.pre->context);
 			makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
 			swapcontext(&(tls.pre->context), &(tls.cur->context));
+			//setcontext(&(tls.cur->context));
 		}
 		else//tls.pre == null
 		{	
@@ -109,18 +112,21 @@ void Fiber_Control::yield_to(Fiber* next_fib)
 			trampoline_args* args = new trampoline_args;
 			args->fn=tls.cur->fn;
 			init_context(&(tls.cur->context));
-			ucontext_t here;
-			tls.cur->context.uc_link=&here;
+
+			init_context(&(tls.base));
+			tls.cur->context.uc_link=&(tls.base);
 			makecontext(&(tls.cur->context), (void (*)())trampoline, 1, args);
-			swapcontext(&here, &(tls.cur->context));
+			swapcontext(&(tls.base), &(tls.cur->context));
 		}
 	}
 	else
 	{
+		std::cout<<"run to here: Fiber_Control:122"<<std::endl;
 		if(tls.cur)
 		{
 			tls.pre=tls.cur;
 			tls.cur=NULL;
+			setcontext(&(tls.base));
 		}
 		else
 			return;
@@ -140,8 +146,9 @@ void Fiber_Control::trampoline(void* _args) {
   // we may have launched to here by switching in from another fiber.
   // we will need to clean up the previous fiber
   
-  // if (tls.prev_fiber) t->parent->reschedule_fiber(t->workerid, t->prev_fiber);
-  // t->prev_fiber = NULL;
+  if (tls.pre) 
+  	tls.parent->reschedule_fiber(tls.pre);
+  tls.pre = NULL;
   std::cout<<" i am trampoline\n";
   trampoline_args* args = reinterpret_cast<trampoline_args*>(_args);
   try {
@@ -149,10 +156,26 @@ void Fiber_Control::trampoline(void* _args) {
   } catch (...) {
   }
   delete args;
-  //fiber_control::exit();
+  exit();
 }
 
 void Fiber_Control::reschedule_fiber(Fiber* f)
 {
-	workerqueue.push(*f);
+	if (not f->terminate)
+	{
+		workerqueue.push(*f);	
+	}	
+}
+
+void Fiber_Control::exit()
+{
+	tls.cur->terminate=true;
+	yield();
+
+}
+void Fiber_Control::yield()
+{
+
+	Fiber * next_fib=tls.parent->get_fiber();
+	tls.parent->yield_to(next_fib);
 }

@@ -14,6 +14,7 @@ struct Fiber
 	Fiber_Control* parent;
 	std::function<void()> fn;
 	ucontext_t context;
+	bool terminate;
 };
 struct Tls
 {
@@ -33,9 +34,10 @@ public:
 	void launch(std::function<void()> fn);
 	Fiber_Control();
 	void join();
+	static void exit();
 	static void yield();
 	static void trampoline(void* _args);
-	
+	static Tls tls;
 private:	
 	Thread thread;
 	Mutex mutex;
@@ -43,8 +45,7 @@ private:
 	bool waiting;
 	bool stop;
 	std::queue<Fiber> workerqueue;
-	Fiber* get_fiber();
-	Tls tls;
+	Fiber* get_fiber();	
 	void yield_to(Fiber* next_fib);
 	void reschedule_fiber(Fiber* f);
 };
