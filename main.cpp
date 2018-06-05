@@ -24,6 +24,7 @@ int main(int argc, char const *argv[])
 	g.launch(foo);
 	g.launch(bar);
 	g.launch(foo);
+	g.launch(bar);
 	g.join();
 	return 0;
 }
